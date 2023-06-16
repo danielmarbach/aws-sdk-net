@@ -391,6 +391,8 @@ namespace Amazon.Runtime
         private HttpRequestMessage _request;
         private HttpClient _httpClient;
         private IClientConfig _clientConfig;
+        private List<IDisposable> _trackedDisposables;
+        private IDisposable _trackedDisposable;
 
         /// <summary>
         /// The constructor for HttpWebRequestMessage.
@@ -501,6 +503,23 @@ namespace Amazon.Runtime
         public void Abort()
         {
             // NOP since HttRequestMessage does not have an Abort operation. 
+        }
+
+        /// <inheritdoc />
+        public void Track(IDisposable disposable)
+        {
+            if (_trackedDisposable == null)
+            {
+                _trackedDisposable = disposable;
+            }
+            else
+            {
+                _trackedDisposables ??= new List<IDisposable>
+                {
+                    _trackedDisposable
+                };
+                _trackedDisposables.Add(disposable);
+            }
         }
 
         /// <summary>
@@ -615,7 +634,6 @@ namespace Amazon.Runtime
             return System.Threading.Tasks.Task.FromResult(_request.Content);
         }
 
-
         private void WriteContentHeaders(IDictionary<string, string> contentHeaders)
         {
             _request.Content.Headers.ContentType =
@@ -662,8 +680,18 @@ namespace Amazon.Runtime
 
             if (disposing)
             {
-                if (_request != null)
-                    _request.Dispose();
+                if (_trackedDisposables != null)
+                {
+                    foreach (var disposable in _trackedDisposables)
+                    {
+                        disposable.Dispose();
+                    }
+
+                    _trackedDisposable = null;
+                }
+
+                _trackedDisposable?.Dispose();
+                _request?.Dispose();
 
                 _disposed = true;
             }

@@ -107,6 +107,12 @@ namespace Amazon.Runtime
         /// </summary>
         void Abort();
 
+        /// <summary>
+        /// Registers a disposable instance to be tracked and disposed when the request is disposed
+        /// </summary>
+        /// <param name="disposable">The disposable to dispose with the request.</param>
+        void Track(IDisposable disposable);
+
 #if AWS_ASYNC_API
 
         /// <summary>
